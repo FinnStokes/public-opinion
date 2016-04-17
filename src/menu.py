@@ -11,6 +11,7 @@ class Menu(object):
         self.options = options
         self.default = default
         self.selected = self.default
+        self.top = 0.0
 
     def reset(self):
         self.selected = self.default
@@ -51,3 +52,4 @@ class Menu(object):
                 pygame.draw.rect(surface, (0, 0, 0), box)
                 pygame.draw.rect(surface, (255, 255, 255), button)
             surface.blit(text, text_rect)
+        self.top = box.top

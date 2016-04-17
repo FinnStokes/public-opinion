@@ -179,7 +179,7 @@ def main(resolution, fullscreen):
 
             title = title_font.render("PUBLIC OPINION", True, (0, 0, 0))
             fontrect = title.get_rect()
-            fontrect.midbottom = screenRect.center
+            fontrect.midbottom = (screenRect.centerx, min(screenRect.centery, main_menu.top - 20))
             screen.blit(title, fontrect.topleft)
 
             subtitle = font.render("Shape a shift in", True, (0, 0, 0))
