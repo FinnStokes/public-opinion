@@ -12,14 +12,14 @@ CLUSTER_THRESHOLD = 0.8
 
 
 class Actor(pygame.sprite.Sprite):
-    def __init__(self, world, pos, fixed=False, position=0.0):
+    def __init__(self, world, pos, fixed=False, position=0.0, size=15, speed=0.3):
         pygame.sprite.Sprite.__init__(self)
         self.world = world
         self.pos = pos
-        self.image = pygame.Surface((10, 10))
+        self.image = pygame.Surface((size, size))
         self.rect = self.image.get_rect()
-        self.direction = (0.0, 0.0)
-        self.speed = 0.3
+        self.direction = (2.0, 0.0)
+        self.speed = speed
         self.position = position
         self.update_colour()
         self.crowdedness = 0.0
@@ -59,7 +59,12 @@ class Actor(pygame.sprite.Sprite):
         self.image.fill((r, 0, b))
 
     def influence(self, other):
-        return 0.0 if self.fixed else 0.6
+        if self.fixed:
+            return 0.0
+        else:
+            return (1.0 * (other.position**2 + 0.5)
+                    / ((1.0 + (self.position - other.position)**2)
+                        * (self.position**2 + other.position**2 + 2 * 0.5)))
 
     def interact(self, other):
         pass
@@ -67,7 +72,7 @@ class Actor(pygame.sprite.Sprite):
 
 class Citizen(Actor):
     def __init__(self, world, *args, **kwargs):
-        Actor.__init__(self, world, world.random_pos(), *args, **kwargs)
+        Actor.__init__(self, world, world.random_pos(), size=10, speed=0.2, *args, **kwargs)
         self.time = {}
 
     def update(self, frame, dt):
@@ -99,7 +104,7 @@ class Citizen(Actor):
                         f = -PROXIMITY / d2
                         a_move = (f * dx, f * dy)
                 else:
-                    f = 2.0 * (time - 0.5) * PROXIMITY / (d2)
+                    f = 4.0 * (time - 0.5) * PROXIMITY / (d2)
                     a_move = (f * dx, f * dy)
 
                 if attraction > maximum:
@@ -124,10 +129,10 @@ class Citizen(Actor):
         #         factor = attraction - 0.5
         #         move[0] += factor * (a.pos[0] - self.pos[0])
         #         move[1] += factor * (a.pos[1] - self.pos[1])
-        move[0] -= 1.0 / (self.world.left - MARGIN - self.pos[0])
-        move[0] -= 1.0 / (self.world.right + MARGIN - self.pos[0])
-        move[1] -= 1.0 / (self.world.top - MARGIN - self.pos[1])
-        move[1] -= 1.0 / (self.world.bottom + MARGIN - self.pos[1])
+        move[0] -= 0.5 / (self.world.left - MARGIN - self.pos[0])
+        move[0] -= 0.5 / (self.world.right + MARGIN - self.pos[0])
+        move[1] -= 0.5 / (self.world.top - MARGIN - self.pos[1])
+        move[1] -= 0.5 / (self.world.bottom + MARGIN - self.pos[1])
         norm2 = move[0]**2 + move[1]**2
         if norm2 > INTERACTION_RADIUS**2:
             norm = math.sqrt(norm2)

@@ -27,10 +27,12 @@ def main(resolution, fullscreen):
 
     sprites = pygame.sprite.Group()
     stage = world.World(screen.get_size())
-    player = actor.Actor(stage, (0.0, 0.0), True, 1.0)
-    sprites.add(player)
+    player1 = actor.Actor(stage, (0.5, -0.5), True, 1.0)
+    player2 = actor.Actor(stage, (-0.5, 0.5), True, -1.0)
+    sprites.add(player1)
+    sprites.add(player2)
 
-    citizens = [actor.Citizen(stage, position=random.uniform(-1.0, 0.0))
+    citizens = [actor.Citizen(stage, position=random.uniform(-0.2, 0.2))
                 for i in xrange(40)]
 
     for c in citizens:
@@ -45,6 +47,9 @@ def main(resolution, fullscreen):
     clock = pygame.time.Clock()
     time = 0.0
     frames = 0
+
+    joystick = pygame.joystick.Joystick(0)
+    joystick.init()
 
     while not quit:
         dt = clock.tick(200) / 1000.0
@@ -74,15 +79,57 @@ def main(resolution, fullscreen):
             move[0] /= norm
             move[1] /= norm
 
-        player.direction = move
+        player1.direction = move
+
+        move = [0.0, 0.0]
+        move[0] = joystick.get_axis(0)
+        move[1] = joystick.get_axis(1)
+        norm2 = move[0]**2 + move[1]**2
+        if norm2 > 1:
+            norm = math.sqrt(norm2)
+            move[0] /= norm
+            move[1] /= norm
+
+        player2.direction = move
+
         sprites.update(frames, dt)
+
+        red = 0
+        blue = 0
+        for a in sprites:
+            if a.position > 0.0:
+                red += 1
+            else:
+                blue += 1
+
+        # if red > 0.9 * (red + blue):
+        #     print("Well done. You took " + str(time) + " seconds.")
+        #     quit = True
+
+        if time > 60.0:
+            quit = True
 
         screen.blit(background, (0, 0))
         sprites.draw(screen)
         pygame.display.flip()
 
-    print("Rendered " + str(frames) + " frames in " + str(time)
-          + " seconds (" + str(frames / time) + " FPS)")
+    # print("Rendered " + str(frames) + " frames in " + str(time)
+    #       + " seconds (" + str(frames / time) + " FPS)")
+
+    for a in sprites:
+        if a.position > 0.0:
+            red += 1
+        else:
+            blue += 1
+    r = red * 100.0 / (red + blue)
+    b = blue * 100.0 / (red + blue)
+    format_str = "{:.1f}% to {:.1f}%"
+    if blue > red:
+        print("Blue wins!")
+        print(format_str.format(b, r))
+    else:
+        print("Red wins!")
+        print(format_str.format(r, b))
 
 
 def resolution(raw):
