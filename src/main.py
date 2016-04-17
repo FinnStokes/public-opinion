@@ -30,12 +30,15 @@ def main(resolution, fullscreen):
     player = actor.Actor(stage, (0.0, 0.0), True, 1.0)
     sprites.add(player)
 
-    citizens = [actor.Citizen(stage, position=-1.0) for i in xrange(20)]
+    citizens = [actor.Citizen(stage, position=random.uniform(-1.0, 0.0))
+                for i in xrange(40)]
 
     for c in citizens:
-        sprites.add(c)
         c.connection = {actor: random.uniform(0.0, 1.0)
-                        for actor in stage.actors}
+                        for actor in sprites}
+        for a in c.connection:
+            a.connection[c] = c.connection[a]
+        sprites.add(c)
 
     quit = False
 

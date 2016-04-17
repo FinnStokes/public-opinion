@@ -8,6 +8,7 @@ TIMESCALE = 3.0
 MARGIN = 0.001
 DECAY_RATE = 1.0
 CONNECT_RATE = 0.5
+CLUSTER_THRESHOLD = 0.8
 
 
 class Actor(pygame.sprite.Sprite):
@@ -24,6 +25,7 @@ class Actor(pygame.sprite.Sprite):
         self.crowdedness = 0.0
         self.fixed = fixed
         self.updated = 0
+        self.connection = {}
         world.add(self)
 
     def update(self, frame, dt):
@@ -66,46 +68,62 @@ class Actor(pygame.sprite.Sprite):
 class Citizen(Actor):
     def __init__(self, world, *args, **kwargs):
         Actor.__init__(self, world, world.random_pos(), *args, **kwargs)
-        self.connection = {}
         self.time = {}
 
-    def attraction(self, actor):
-        connection = self.connection.get(actor, 0.0)
-        proximity = PROXIMITY / (PROXIMITY + (self.pos[0] - actor.pos[0])**2
-                                 + (self.pos[1] - actor.pos[1])**2)
-        time = self.time[actor]
-        time = time / (TIMESCALE + time)
-        crowdedness = 1.0 / (1.0 + 0.1 * actor.crowdedness)
-        return (connection + proximity) * time * crowdedness
-
     def update(self, frame, dt):
-        # maximum = 0.0
-        # target = None
+        maximum = 0.0
+        target = None
+        target_move = (0.0, 0.0)
         move = [0.0, 0.0]
+        for a in self.world.actors:
+            if a is not self:
+                a_move = (0.0, 0.0)
+                self.time[a] = self.time.get(a, 0.0) + dt
+                dx = a.pos[0] - self.pos[0]
+                dy = a.pos[1] - self.pos[1]
+                d2 = dx**2 + dy**2
+                connection = self.connection.get(a, 0.0)
+                proximity = PROXIMITY / (PROXIMITY + d2)
+                time = self.time[a]
+                time = time / (TIMESCALE + time)
+                crowdedness = 1.0 / (1.0 + 0.1 * a.crowdedness)
+                attraction = (connection + proximity) * time * crowdedness
+                if not a.fixed:
+                    if connection > CLUSTER_THRESHOLD:
+                        if d2 > 0:
+                            d = math.sqrt(d2)
+                            f = PROXIMITY**3 / (PROXIMITY**2 + d2**2 / 100)
+                            a_move = (f * dx * (1.0 - PROXIMITY / d),
+                                      f * dy * (1.0 - PROXIMITY / d))
+                    else:
+                        f = -PROXIMITY / d2
+                        a_move = (f * dx, f * dy)
+                else:
+                    f = 2.0 * (time - 0.5) * PROXIMITY / (d2)
+                    a_move = (f * dx, f * dy)
+
+                if attraction > maximum:
+                    target = a
+                    target_move = a_move
+                    maximum = attraction
+                move[0] += a_move[0]
+                move[1] += a_move[1]
+        if target is not None:
+            dx = target.pos[0] - self.pos[0]
+            dy = target.pos[1] - self.pos[1]
+            d2 = dx**2 + dy**2
+            if d2 > 0:
+                d = math.sqrt(d2)
+                f = 1.0 / d
+                move[0] += f * dx - target_move[0]
+                move[1] += f * dy - target_move[1]
         # for a in self.world.actors:
-        #     if a is not self:
+        #     if a is not self and not a.fixed:
         #         self.time[a] = self.time.get(a, 0.0) + dt
         #         attraction = self.attraction(a)
-        #         if attraction > maximum:
-        #             target = a
-        #             maximum = attraction
-        # for a in self.world.actors:
-        #     if a is target:
-        #         factor = 1.0
-        #     elif a.fixed:
-        #         factor = 0.0
-        #     else:
-        #         factor = -0.1 / (0.01 + (a.pos[0] - self.pos[0])**2
-        #                          + (a.pos[1] - self.pos[1])**2)**2
-        #     move[0] += factor * (a.pos[0] - self.pos[0])
-        #     move[1] += factor * (a.pos[1] - self.pos[1])
-        for a in self.world.actors:
-            if a is not self and not a.fixed:
-                self.time[a] = self.time.get(a, 0.0) + dt
-                attraction = self.attraction(a)
-                factor = attraction - 0.6
-                move[0] += factor * (a.pos[0] - self.pos[0])
-                move[1] += factor * (a.pos[1] - self.pos[1])
+        #         factor = attraction - 0.5
+        #         move[0] += factor * (a.pos[0] - self.pos[0])
+        #         move[1] += factor * (a.pos[1] - self.pos[1])
         move[0] -= 1.0 / (self.world.left - MARGIN - self.pos[0])
         move[0] -= 1.0 / (self.world.right + MARGIN - self.pos[0])
         move[1] -= 1.0 / (self.world.top - MARGIN - self.pos[1])
