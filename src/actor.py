@@ -2,10 +2,12 @@ import math
 
 import pygame
 
-INTERACTION_RADIUS = 0.02
+INTERACTION_RADIUS = 0.01
 PROXIMITY = 0.1
 TIMESCALE = 3.0
 MARGIN = 0.001
+DECAY_RATE = 1.0
+CONNECT_RATE = 0.5
 
 
 class Actor(pygame.sprite.Sprite):
@@ -73,30 +75,37 @@ class Citizen(Actor):
                                  + (self.pos[1] - actor.pos[1])**2)
         time = self.time[actor]
         time = time / (TIMESCALE + time)
-        crowdedness = 1.0  # / (0.1 + actor.crowdedness)
+        crowdedness = 1.0 / (1.0 + 0.1 * actor.crowdedness)
         return (connection + proximity) * time * crowdedness
 
     def update(self, frame, dt):
-        maximum = 0.0
-        target = None
+        # maximum = 0.0
+        # target = None
         move = [0.0, 0.0]
+        # for a in self.world.actors:
+        #     if a is not self:
+        #         self.time[a] = self.time.get(a, 0.0) + dt
+        #         attraction = self.attraction(a)
+        #         if attraction > maximum:
+        #             target = a
+        #             maximum = attraction
+        # for a in self.world.actors:
+        #     if a is target:
+        #         factor = 1.0
+        #     elif a.fixed:
+        #         factor = 0.0
+        #     else:
+        #         factor = -0.1 / (0.01 + (a.pos[0] - self.pos[0])**2
+        #                          + (a.pos[1] - self.pos[1])**2)**2
+        #     move[0] += factor * (a.pos[0] - self.pos[0])
+        #     move[1] += factor * (a.pos[1] - self.pos[1])
         for a in self.world.actors:
-            if a is not self:
+            if a is not self and not a.fixed:
                 self.time[a] = self.time.get(a, 0.0) + dt
                 attraction = self.attraction(a)
-                if attraction > maximum:
-                    target = a
-                    maximum = attraction
-        for a in self.world.actors:
-            if a is target:
-                factor = 1.0
-            elif a.fixed:
-                factor = 0.0
-            else:
-                factor = -0.1 / (0.01 + (a.pos[0] - self.pos[0])**2
-                                 + (a.pos[1] - self.pos[1])**2)**2
-            move[0] += factor * (a.pos[0] - self.pos[0])
-            move[1] += factor * (a.pos[1] - self.pos[1])
+                factor = attraction - 0.6
+                move[0] += factor * (a.pos[0] - self.pos[0])
+                move[1] += factor * (a.pos[1] - self.pos[1])
         move[0] -= 1.0 / (self.world.left - MARGIN - self.pos[0])
         move[0] -= 1.0 / (self.world.right + MARGIN - self.pos[0])
         move[1] -= 1.0 / (self.world.top - MARGIN - self.pos[1])
@@ -109,7 +118,17 @@ class Citizen(Actor):
         move[0] /= norm
         move[1] /= norm
         self.direction = move
+        decay = DECAY_RATE**dt
+        for a in self.connection:
+            self.connection[a] *= decay
         Actor.update(self, frame, dt)
 
     def interact(self, other):
         self.time[other] = 0.0
+        c = self.connection.get(other, 0.0)
+        dc = (1.0 - c) * CONNECT_RATE
+        self.connection[other] += dc
+        dc /= len(self.connection) - 1
+        for a in self.connection:
+            if a is not other:
+                self.connection[a] -= dc
