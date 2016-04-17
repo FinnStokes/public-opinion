@@ -9,6 +9,7 @@ import random
 import pygame
 
 import actor
+import controls
 import meter
 import world
 
@@ -32,10 +33,8 @@ def main(resolution, fullscreen):
 
     sprites = pygame.sprite.Group()
     stage = world.World(screen.get_size())
-    player1 = actor.Actor(stage, (0.5, -0.5), True, 1.0)
-    player2 = actor.Actor(stage, (-0.5, 0.5), True, -1.0)
-    sprites.add(player1)
-    sprites.add(player2)
+    players = [actor.Actor(stage, (-0.5, 0.5), True, -1.0), actor.Actor(stage, (0.5, -0.5), True, 1.0)]
+    sprites.add(players)
 
     hud = pygame.sprite.Group()
     meter_rect = screenRect.copy()
@@ -62,9 +61,7 @@ def main(resolution, fullscreen):
     time = 0.0
     frames = 0
 
-    joysticks = [pygame.joystick.Joystick(i) for i in xrange(pygame.joystick.get_count())]
-    for j in joysticks:
-        j.init()
+    ctrl = controls.Controls()
 
     while not quit:
         dt = clock.tick(200) / 1000.0
@@ -78,35 +75,7 @@ def main(resolution, fullscreen):
                 if event.key == pygame.K_ESCAPE:
                     quit = True
 
-        move = [0.0, 0.0]
-        pressed = pygame.key.get_pressed()
-        if pressed[pygame.K_UP] or pressed[pygame.K_w]:
-            move[1] -= 1.0
-        if pressed[pygame.K_DOWN] or pressed[pygame.K_s]:
-            move[1] += 1.0
-        if pressed[pygame.K_LEFT] or pressed[pygame.K_a]:
-            move[0] -= 1.0
-        if pressed[pygame.K_RIGHT] or pressed[pygame.K_d]:
-            move[0] += 1.0
-        norm2 = move[0]**2 + move[1]**2
-        if norm2 > 1:
-            norm = math.sqrt(norm2)
-            move[0] /= norm
-            move[1] /= norm
-
-        player1.direction = move
-
-        move = [0.0, 0.0]
-        if 0 in joysticks:
-            move[0] = joysticks[0].get_axis(0)
-            move[1] = joysticks[0].get_axis(1)
-        norm2 = move[0]**2 + move[1]**2
-        if norm2 > 1:
-            norm = math.sqrt(norm2)
-            move[0] /= norm
-            move[1] /= norm
-
-        player2.direction = move
+        ctrl.update_game(players, dt)
 
         sprites.update(frames, dt)
 
