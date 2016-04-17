@@ -36,3 +36,6 @@ class World(object):
 
     def add(self, actor):
         self.actors.append(actor)
+
+    def empty(self):
+        self.actors = []

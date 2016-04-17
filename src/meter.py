@@ -2,7 +2,7 @@ import pygame
 
 
 class Meter(pygame.sprite.Sprite):
-    def __init__(self, rect, font, blue=(0, 0, 255), red=(255, 0, 0)):
+    def __init__(self, rect, font, col):
         pygame.sprite.Sprite.__init__(self)
         self.format = " {:.1f}% "
         fontrect = font.render(self.format.format(100.0), True, (0, 0, 0)).get_rect()
@@ -16,7 +16,7 @@ class Meter(pygame.sprite.Sprite):
         self.red = 0
         self.blue_frac = 0.5
         self.red_frac = 0.5
-        self.colours = (blue, red)
+        self.colours = col
         self.image = pygame.Surface(self.rect.size).convert_alpha()
         self.font = font
 
@@ -33,21 +33,21 @@ class Meter(pygame.sprite.Sprite):
         fillrect.width -= 2
         fillrect.height -= 2
         fillrect.center = self.fill_rect.center
-        pygame.draw.rect(self.image, self.colours[1], fillrect)
+        pygame.draw.rect(self.image, self.colours.red(), fillrect)
         bar_rect = fillrect.copy()
         bar_rect.width = int(bar_rect.width*self.blue_frac)
-        pygame.draw.rect(self.image, self.colours[0], bar_rect)
+        pygame.draw.rect(self.image, self.colours.blue(), bar_rect)
         line_rect = bar_rect.copy()
         line_rect.width = 1
         line_rect.right = bar_rect.right
         pygame.draw.rect(self.image, (0, 0, 0), line_rect)
 
-        blue_percent = self.font.render(self.format.format(self.blue_perc()), True, (0, 0, 100))
+        blue_percent = self.font.render(self.format.format(self.blue_perc()), True, self.colours.dblue())
         blue_rect = blue_percent.get_rect()
         blue_rect.midright = self.fill_rect.midleft
         self.image.blit(blue_percent, blue_rect)
 
-        red_percent = self.font.render(self.format.format(self.red_perc()), True, (100, 0, 0))
+        red_percent = self.font.render(self.format.format(self.red_perc()), True, self.colours.dred())
         red_rect = red_percent.get_rect()
         red_rect.midleft = self.fill_rect.midright
         self.image.blit(red_percent, red_rect)

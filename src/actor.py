@@ -12,12 +12,13 @@ CLUSTER_THRESHOLD = 0.8
 
 
 class Actor(pygame.sprite.Sprite):
-    def __init__(self, world, pos, fixed=False, position=0.0, size=15, speed=0.3):
+    def __init__(self, world, col, pos, fixed=False, position=0.0, size=15, speed=0.3):
         pygame.sprite.Sprite.__init__(self)
         self.world = world
         self.pos = pos
         self.image = pygame.Surface((size, size))
         self.rect = self.image.get_rect()
+        self.colour = col
         self.direction = (2.0, 0.0)
         self.speed = speed
         self.position = position
@@ -54,9 +55,15 @@ class Actor(pygame.sprite.Sprite):
         self.updated = frame
 
     def update_colour(self):
-        r = int(255 * (1.0 + self.position) / 2.0)
-        b = 255 - r
-        self.image.fill((r, 0, b))
+        b = self.colour.blue()
+        r = self.colour.red()
+        x = (1.0 + self.position) / 2.0
+        self.image.fill((0, 0, 0))
+        rect = self.rect.copy()
+        rect.width -= 2
+        rect.height -= 2
+        rect.topleft = (1, 1)
+        pygame.draw.rect(self.image, tuple(int(b[i] + (r[i] - b[i])*x) for i in (0, 1, 2)), rect)
 
     def influence(self, other):
         if self.fixed:
@@ -71,8 +78,8 @@ class Actor(pygame.sprite.Sprite):
 
 
 class Citizen(Actor):
-    def __init__(self, world, *args, **kwargs):
-        Actor.__init__(self, world, world.random_pos(), size=10, speed=0.2, *args, **kwargs)
+    def __init__(self, world, col, *args, **kwargs):
+        Actor.__init__(self, world, col, world.random_pos(), size=10, speed=0.2, *args, **kwargs)
         self.time = {}
 
     def update(self, frame, dt):
@@ -101,8 +108,9 @@ class Citizen(Actor):
                             a_move = (f * dx * (1.0 - PROXIMITY / d),
                                       f * dy * (1.0 - PROXIMITY / d))
                     else:
-                        f = -PROXIMITY / d2
-                        a_move = (f * dx, f * dy)
+                        if d2 > 0:
+                            f = -PROXIMITY / d2
+                            a_move = (f * dx, f * dy)
                 else:
                     f = 4.0 * (time - 0.5) * PROXIMITY / (d2)
                     a_move = (f * dx, f * dy)
