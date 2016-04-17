@@ -1,13 +1,17 @@
+import math
 import random
 
 
 class World(object):
     def __init__(self, window):
-        self.left = -1.0
-        self.right = 1.0
-        self.top = -1.0
-        self.bottom = 1.0
         self.width, self.height = window
+        ratio = self.width * 1.0 / self.height
+        w = math.sqrt(ratio)
+        h = 1.0/w
+        self.left = -w
+        self.right = w
+        self.top = -h
+        self.bottom = h
         self.actors = []
 
     def screen(self, pos, size=None):

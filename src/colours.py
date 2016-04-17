@@ -25,3 +25,15 @@ class Colours(object):
             return (0, 0, 0)
         else:
             return (0, 0, 100)
+
+    def red_name(self):
+        if self.cb_mode:
+            return "White"
+        else:
+            return "Red"
+
+    def blue_name(self):
+        if self.cb_mode:
+            return "Black"
+        else:
+            return "Blue"
