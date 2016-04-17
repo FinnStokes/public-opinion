@@ -9,6 +9,7 @@ import random
 import pygame
 
 import actor
+import meter
 import world
 
 
@@ -20,6 +21,10 @@ def main(resolution, fullscreen):
     if fullscreen:
         flags |= pygame.FULLSCREEN
     screen = pygame.display.set_mode(resolution, flags)
+    screenRect = screen.get_rect()
+    pygame.display.set_caption('Public Opinion')
+
+    font = pygame.font.SysFont("sans,arial", 30)
 
     background = pygame.Surface(screen.get_size())
     background = background.convert()
@@ -31,6 +36,15 @@ def main(resolution, fullscreen):
     player2 = actor.Actor(stage, (-0.5, 0.5), True, -1.0)
     sprites.add(player1)
     sprites.add(player2)
+
+    hud = pygame.sprite.Group()
+    meter_rect = screenRect.copy()
+    meter_rect.width /= 4
+    meter_rect.height = 40
+    meter_rect.midtop = screenRect.midtop
+    meter_rect.top += 20
+    opinion_meter = meter.Meter(meter_rect, font)
+    hud.add(opinion_meter)
 
     citizens = [actor.Citizen(stage, position=random.uniform(-0.2, 0.2))
                 for i in xrange(40)]
@@ -48,8 +62,9 @@ def main(resolution, fullscreen):
     time = 0.0
     frames = 0
 
-    joystick = pygame.joystick.Joystick(0)
-    joystick.init()
+    joysticks = [pygame.joystick.Joystick(i) for i in xrange(pygame.joystick.get_count())]
+    for j in joysticks:
+        j.init()
 
     while not quit:
         dt = clock.tick(200) / 1000.0
@@ -82,8 +97,9 @@ def main(resolution, fullscreen):
         player1.direction = move
 
         move = [0.0, 0.0]
-        move[0] = joystick.get_axis(0)
-        move[1] = joystick.get_axis(1)
+        if 0 in joysticks:
+            move[0] = joysticks[0].get_axis(0)
+            move[1] = joysticks[0].get_axis(1)
         norm2 = move[0]**2 + move[1]**2
         if norm2 > 1:
             norm = math.sqrt(norm2)
@@ -101,6 +117,8 @@ def main(resolution, fullscreen):
                 red += 1
             else:
                 blue += 1
+        if red != opinion_meter.red or blue != opinion_meter.blue:
+            opinion_meter.update(blue, red)
 
         # if red > 0.9 * (red + blue):
         #     print("Well done. You took " + str(time) + " seconds.")
@@ -111,18 +129,22 @@ def main(resolution, fullscreen):
 
         screen.blit(background, (0, 0))
         sprites.draw(screen)
+
+        time_remaining = font.render("{:.1f} s".format(abs(60.0 - time)), True, (0, 0, 0))
+        fontrect = time_remaining.get_rect()
+        fontrect.midtop = screenRect.midtop
+        fontrect.top += 70
+        screen.blit(time_remaining, fontrect.topleft)
+
+        hud.draw(screen)
+
         pygame.display.flip()
 
     # print("Rendered " + str(frames) + " frames in " + str(time)
     #       + " seconds (" + str(frames / time) + " FPS)")
 
-    for a in sprites:
-        if a.position > 0.0:
-            red += 1
-        else:
-            blue += 1
-    r = red * 100.0 / (red + blue)
-    b = blue * 100.0 / (red + blue)
+    r = opinion_meter.red_perc()
+    b = opinion_meter.blue_perc()
     format_str = "{:.1f}% to {:.1f}%"
     if blue > red:
         print("Blue wins!")
